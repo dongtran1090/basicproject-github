@@ -36,15 +36,56 @@
     <div class="container">
         <h2>Free ChatBot</h2>
         <div class="form-group">
-            <input type="text"
-                   class="form-control"
-                   id="userInput"
-                   placeholder="Enter your question" />
+            <textarea class="form-control" id="userInput" placeholder="Enter your question" rows="8"></textarea>
         </div>
-        <button class="btn btn-success" onclick="sendMessage()">Ask!</button>
+        <div class="form-group mt-3">
+            <input type="file" class="form-control-file" id="fileInput" />
+        </div>
+        <button class="btn btn-success mt-2" onclick="sendMessage()">Ask!</button>
         <div id="response"></div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+
     <script>
+        let codeText = "";
+
+        document.getElementById('fileInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            const inputBox = document.getElementById('userInput');
+
+            if (!file) {
+                alert("🚫 Vui lòng chọn một file.");
+                return;
+            }
+
+            if (file.name.endsWith('.cpp')) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    codeText = e.target.result;
+                    inputBox.value = `Hãy chấm điểm và đánh giá sơ bộ đoạn mã sau:\n\n${codeText}`;
+                };
+                reader.readAsText(file);
+            } else if (file.name.endsWith('.docx')) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    mammoth.extractRawText({ arrayBuffer: e.target.result })
+                        .then(function (result) {
+                            codeText = result.value;
+                            inputBox.value = `Hãy chấm điểm đầu tiên và đánh giá sơ bộ đoạn mã sau , đánh giá độ clean của code  \n\n${codeText}`;
+                        })
+                        .catch(function (err) {
+                            alert("🚫 Lỗi khi đọc file .docx: " + err.message);
+                        });
+};
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert("❌ Vui lòng chọn file .cpp hoặc .docx hợp lệ.");
+                inputBox.value = "";
+            }
+        });
+
         async function sendMessage() {
             const input = document.getElementById('userInput').value;
             const responseDiv = document.getElementById('response');
@@ -59,7 +100,7 @@
                     {
                         method: 'POST',
                         headers: {
-                            Authorization: 'Bearer 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',
+                            Authorization: 'Bearer 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',
                             'HTTP-Referer': 'https://www.sitename.com',
                             'X-Title': 'SiteName',
                             'Content-Type': 'application/json',
@@ -71,7 +112,6 @@
                     },
                 );
                 const data = await response.json();
-                console.log(data);
                 const markdownText =
                     data.choices?.[0]?.message?.content || 'No response received.';
                 responseDiv.innerHTML = marked.parse(markdownText);
